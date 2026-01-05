@@ -1,38 +1,121 @@
-.App {
-  text-align: center;
+/* src/App.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  overflow: hidden; /* Tüm sayfa kaydırmasını engelle */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.app {
+  height: 100vh; /* Tam ekran yüksekliği */
+  display: flex;
+  flex-direction: column;
+  background-size: cover;
+  background-position: center;
+  transition: 0.4s ease-out;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* Layout Container */
+.main-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  flex-grow: 1;
+  gap: 20px;
+  height: calc(100vh - 140px); /* Header ve Footer için pay bırak */
+  overflow: hidden;
+}
+
+.left-sidebar {
+  width: 250px;
+  min-width: 250px;
+  height: 100%;
+  overflow-y: auto; /* Sadece burası kaysın */
+  padding-right: 5px;
+}
+
+/* Scrollbar Stilleri */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5); 
+}
+
+.content-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  height: 100%;
+  overflow-y: auto;
+  min-width: 300px;
 }
 
-.App-link {
-  color: #61dafb;
+.sidebar-area {
+  width: 250px;
+  min-width: 250px;
+  height: 100%;
+  overflow-y: auto;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* --- DİNAMİK ARKA PLANLAR --- */
+.app.default { background-image: linear-gradient(to bottom, #4c669f, #3b5998, #192f6a); }
+.app.up { background-image: linear-gradient(to bottom, #11998e, #38ef7d); }
+.app.down { background-image: linear-gradient(to bottom, #cb2d3e, #ef473a); }
+
+/* Arama Kutusu */
+.search-box { margin-top: 20px; margin-bottom: 20px; }
+.search-bar {
+  padding: 15px 25px;
+  border-radius: 16px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
+  width: 300px;
+  text-align: center;
+  transition: 0.3s;
+}
+.search-bar:focus {
+  background-color: rgba(255, 255, 255, 1);
+  outline: none;
+  box-shadow: 0px 0px 16px rgba(0,0,0,0.2);
+}
+
+.error-msg {
+  margin-top: 20px;
+  background-color: rgba(255, 0, 0, 0.6);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.loading-msg {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Market Overview Styles */
+.market-overview {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  border-radius: 15px;
+  width: 100%;
 }
