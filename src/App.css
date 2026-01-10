@@ -7,7 +7,8 @@
 }
 
 body {
-  overflow: hidden; /* Tüm sayfa kaydırmasını engelle */
+  overflow-x: hidden; /* Yatay taşmayı engelle */
+  overflow-y: auto; /* Mobilde sayfa kayabilsin */
 }
 
 .app {
@@ -68,6 +69,51 @@ body {
   min-width: 300px;
 }
 
+/* --- MOBILE RESPONSIVE --- */
+@media (max-width: 768px) {
+  .app {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .main-container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .left-sidebar,
+  .sidebar-area,
+  .content-area {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+  }
+
+  .left-sidebar,
+  .sidebar-area {
+    overflow: visible;
+  }
+
+  .content-area {
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .search-bar {
+    width: 100%;
+    max-width: 420px;
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  .loading-msg {
+    font-size: 18px;
+  }
+}
+
 .sidebar-area {
   width: 250px;
   min-width: 250px;
@@ -118,4 +164,18 @@ body {
   padding: 20px;
   border-radius: 15px;
   width: 100%;
+}
+
+/* Stock detail grid */
+.stock-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .stock-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }

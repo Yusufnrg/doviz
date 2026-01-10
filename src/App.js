@@ -97,7 +97,7 @@ function App() {
 
   const fetchWithTimeout = async (url, options = {}) => {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 5000);
+    const id = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(id);
@@ -109,26 +109,54 @@ function App() {
   };
 
   const fetchYahooData = async (symbol) => {
-    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-    const proxies = [
-      'https://api.allorigins.win/raw?url=',
-      'https://corsproxy.io/?'
-    ];
+    // Cache busting: her 1 dakikada bir değişen timestamp
+    const cacheBuster = Math.floor(Date.now() / 60000);
+    const hosts = ['query1.finance.yahoo.com', 'query2.finance.yahoo.com'];
 
-    for (const proxy of proxies) {
-      try {
-        const res = await fetchWithTimeout(proxy + encodeURIComponent(targetUrl));
-        if (res.ok) {
+    for (const host of hosts) {
+      const targetUrl = `https://${host}/v8/finance/chart/${symbol}?interval=1d&range=5d&_t=${cacheBuster}`;
+
+      const proxies = [
+        // 1) AllOrigins (JSON wrapper)
+        async (url) => {
+          const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+          if (!res.ok) throw new Error('Network response was not ok');
           const data = await res.json();
-          if (data.chart && data.chart.result) {
-             return data;
-          }
+          return JSON.parse(data.contents);
+        },
+        // 2) CorsProxy.io
+        async (url) => {
+          const res = await fetchWithTimeout(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+          if (!res.ok) throw new Error('Network response was not ok');
+          return await res.json();
+        },
+        // 3) CodeTabs
+        async (url) => {
+          const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+          if (!res.ok) throw new Error('Network response was not ok');
+          return await res.json();
+        },
+        // 4) ThingProxy
+        async (url) => {
+          const res = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${url}`);
+          if (!res.ok) throw new Error('Network response was not ok');
+          return await res.json();
         }
-      } catch (e) {
-        console.log(`Proxy ${proxy} failed for ${symbol}`, e);
+      ];
+
+      for (const fetchViaProxy of proxies) {
+        try {
+          const json = await fetchViaProxy(targetUrl);
+          if (json.chart && json.chart.result && json.chart.result.length > 0) {
+            return json;
+          }
+        } catch (e) {
+          console.warn(`Proxy failed for ${host} with ${symbol}`, e);
+        }
       }
     }
-    throw new Error('Veri çekilemedi (Tüm proxyler başarısız)');
+
+    throw new Error('Veri çekilemedi (Tüm proxyler ve hostlar denendi)');
   };
 
   const fetchStockData = async (symbol) => {
@@ -157,16 +185,32 @@ function App() {
     if (searchSymbol.includes('.IS')) {
       try {
         const data = await fetchYahooData(searchSymbol);
-        const meta = data.chart.result[0].meta;
-        const price = meta.regularMarketPrice;
+        const result = data.chart.result[0];
+        const meta = result.meta;
+
+        let price = meta.regularMarketPrice;
         const prevClose = meta.chartPreviousClose;
+
+        // Bazı durumlarda regularMarketPrice null gelebilir; son kapanıştan fallback yap.
+        if (!price && result.indicators?.quote?.[0]?.close) {
+          const closes = result.indicators.quote[0].close;
+          for (let i = closes.length - 1; i >= 0; i--) {
+            if (closes[i]) {
+              price = closes[i];
+              break;
+            }
+          }
+        }
+
+        if (!price || !prevClose) throw new Error('Fiyat verisi eksik');
+
         const change = price - prevClose;
         const changePercent = (change / prevClose) * 100;
 
         return {
           c: price,
-          d: change.toFixed(2),
-          dp: changePercent.toFixed(2),
+          d: Number(change).toFixed(2),
+          dp: Number(changePercent).toFixed(2),
           symbol: meta.symbol,
           currency: meta.currency
         };

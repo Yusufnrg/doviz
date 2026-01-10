@@ -3,7 +3,7 @@ import React from 'react';
 const Header = ({ activeTab, onTabChange }) => {
   const tabStyle = (tabName) => ({
     padding: '10px 20px',
-    margin: '0 10px',
+    margin: '0 6px',
     cursor: 'pointer',
     borderBottom: activeTab === tabName ? '3px solid white' : '3px solid transparent',
     fontWeight: activeTab === tabName ? 'bold' : 'normal',
@@ -16,7 +16,7 @@ const Header = ({ activeTab, onTabChange }) => {
       <h1>📈 Borsa Takip</h1>
       <p style={{ fontSize: '14px', marginTop: '5px', marginBottom: '20px' }}>Anlık Hisse Senedi Verileri</p>
       
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', flexWrap: 'wrap', rowGap: '8px' }}>
         <div style={tabStyle('market')} onClick={() => onTabChange('market')}>
           Piyasa
         </div>

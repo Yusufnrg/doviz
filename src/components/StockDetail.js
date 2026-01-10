@@ -342,7 +342,7 @@ function StockDetail({ stock, api, onBack }) {
     <div className="stock-detail" style={{
       background: 'rgba(0, 0, 0, 0.3)',
       backdropFilter: 'blur(10px)',
-      padding: '30px',
+      padding: 'clamp(14px, 4vw, 30px)',
       borderRadius: '20px',
       width: '100%',
       maxWidth: '800px',
@@ -359,15 +359,15 @@ function StockDetail({ stock, api, onBack }) {
         fontWeight: 'bold'
       }}>← Geri</button>
       
-      <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+      <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '30px' }}>
         <div className="header-left">
-          <h2 style={{ fontSize: '32px', margin: 0 }}>{stock.symbol}</h2>
-          <p style={{ fontSize: '18px', opacity: 0.8, margin: 0 }}>{stock.name}</p>
+          <h2 style={{ fontSize: 'clamp(22px, 6vw, 32px)', margin: 0, wordBreak: 'break-word' }}>{stock.symbol}</h2>
+          <p style={{ fontSize: 'clamp(14px, 4vw, 18px)', opacity: 0.8, margin: 0, wordBreak: 'break-word' }}>{stock.name}</p>
         </div>
         <div className={`detail-price`} style={{ textAlign: 'right' }}>
-          <h1 style={{ fontSize: '48px', margin: 0 }}>{stock.price} ₺</h1>
+          <h1 style={{ fontSize: 'clamp(28px, 8vw, 48px)', margin: 0 }}>{stock.price} ₺</h1>
           <span style={{ 
-            fontSize: '20px', 
+            fontSize: 'clamp(14px, 4.5vw, 20px)', 
             background: stock.change >= 0 ? 'rgba(76, 175, 80, 0.8)' : 'rgba(244, 67, 54, 0.8)',
             padding: '5px 15px',
             borderRadius: '12px',
@@ -378,7 +378,7 @@ function StockDetail({ stock, api, onBack }) {
         </div>
       </div>
 
-      <div className="chart-controls" style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+      <div className="chart-controls" style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
         {['1D', '1W', '1M', '3M', '1Y'].map(range => (
           <button 
             key={range} 
@@ -387,7 +387,7 @@ function StockDetail({ stock, api, onBack }) {
               background: timeRange === range ? 'white' : 'rgba(255,255,255,0.1)',
               color: timeRange === range ? '#333' : 'white',
               border: 'none',
-              padding: '8px 20px',
+              padding: '8px 16px',
               borderRadius: '20px',
               cursor: 'pointer',
               fontWeight: 'bold',
@@ -415,7 +415,7 @@ function StockDetail({ stock, api, onBack }) {
         )}
       </div>
 
-      <div className="stock-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+      <div className="stock-stats">
         {[
           { label: 'Açılış', value: stock.price },
           { label: 'Yüksek', value: (stock.price * 1.02).toFixed(2) },
