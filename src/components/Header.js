@@ -12,7 +12,17 @@ const Header = ({ activeTab, onTabChange }) => {
   });
 
   return (
-    <header style={{ marginTop: '20px', textAlign: 'center' }}>
+    <header style={{ marginTop: '20px', textAlign: 'center', position: 'relative' }}>
+      <div style={{
+        position: 'absolute',
+        top: '0',
+        right: '20px',
+        fontSize: '12px',
+        opacity: '0.6',
+        fontWeight: 'bold'
+      }}>
+        v0.1
+      </div>
       <h1>📈 Borsa Takip</h1>
       <p style={{ fontSize: '14px', marginTop: '5px', marginBottom: '20px' }}>Anlık Hisse Senedi Verileri</p>
       
