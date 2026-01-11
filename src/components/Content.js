@@ -26,7 +26,7 @@ const Content = ({ stockData, symbol }) => {
         maxWidth: '100%',
         boxShadow: '3px 6px rgba(0,0,0,0.2)'
       }}>
-        {stockData.currency === 'TRY' ? '₺' : '$'}{stockData.c}
+        {(stockData.currency === 'TRY' || stockData.currency === '₺') ? '₺' : '$'}{stockData.c}
       </div>
       
       <div style={{ 

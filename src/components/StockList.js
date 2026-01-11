@@ -1,7 +1,6 @@
 import React from 'react';
 
 export const popularStocks = [
-  { category: 'Popüler BIST 100', symbols: ['THYAO.IS', 'GARAN.IS', 'ASELS.IS', 'AKBNK.IS', 'EREGL.IS', 'SISE.IS', 'KCHOL.IS', 'SAHOL.IS', 'TUPRS.IS', 'BIMAS.IS'] },
   { category: 'ABD Teknoloji', symbols: ['AAPL', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'NVDA', 'META', 'NFLX'] },
   { category: 'Kripto Paralar', symbols: ['BTC', 'ETH', 'SOL', 'AVAX', 'DOGE', 'XRP', 'ADA'] },
   { category: 'Döviz & Emtia', symbols: ['USD', 'EUR', 'XAU/USD'] }

@@ -4,16 +4,18 @@ import { popularStocks } from './StockList';
 
 const BuyPage = ({ onBuy, api, balance }) => {
   const [symbol, setSymbol] = useState('');
+  const [customSymbol, setCustomSymbol] = useState('');
   const [amount, setAmount] = useState('');
   const [fetchedPrice, setFetchedPrice] = useState(null);
   const [fetchedCurrency, setFetchedCurrency] = useState('$');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
 
   const handleFetchPrice = async (selectedSymbol) => {
-    const sym = selectedSymbol || symbol;
+    const sym = selectedSymbol || (useCustom ? customSymbol : symbol);
     if (!sym) {
-      setMessage('⚠️ Lütfen bir sembol seçin.');
+      setMessage('⚠️ Lütfen bir sembol seçin veya girin.');
       return;
     }
 
@@ -37,6 +39,7 @@ const BuyPage = ({ onBuy, api, balance }) => {
   const handleSymbolChange = (e) => {
     const val = e.target.value;
     setSymbol(val);
+    setUseCustom(false);
     if (val) {
       handleFetchPrice(val);
     } else {
@@ -45,24 +48,35 @@ const BuyPage = ({ onBuy, api, balance }) => {
     }
   };
 
+  const handleCustomSymbolSearch = () => {
+    if (customSymbol.trim()) {
+      setSymbol('');
+      setUseCustom(true);
+      handleFetchPrice(customSymbol.trim());
+    }
+  };
+
   const handleBuy = (e) => {
     e.preventDefault();
-    if (!symbol || !amount || !fetchedPrice) {
+    const currentSymbol = useCustom ? customSymbol : symbol;
+    if (!currentSymbol || !amount || !fetchedPrice) {
       setMessage('⚠️ Lütfen sembol seçip fiyatı güncelleyin ve adet belirtin.');
       return;
     }
     
     const success = onBuy({
-      symbol: symbol.toUpperCase(),
+      symbol: currentSymbol.toUpperCase(),
       amount: parseFloat(amount),
       price: parseFloat(fetchedPrice)
     });
 
     if (success) {
-      setMessage(`✅ Başarılı! ${amount} adet ${symbol.toUpperCase()} portföyünüze eklendi.`);
+      setMessage(`✅ Başarılı! ${amount} adet ${currentSymbol.toUpperCase()} portföyünüze eklendi.`);
       setSymbol('');
+      setCustomSymbol('');
       setAmount('');
       setFetchedPrice(null);
+      setUseCustom(false);
       setTimeout(() => setMessage(''), 3000);
     } else {
       setMessage('❌ Yetersiz Bakiye!');
@@ -93,14 +107,15 @@ const BuyPage = ({ onBuy, api, balance }) => {
           <select
             value={symbol}
             onChange={handleSymbolChange}
+            disabled={useCustom}
             style={{
               padding: '12px',
               borderRadius: '8px',
               border: 'none',
               width: '100%',
               fontSize: '16px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              cursor: 'pointer'
+              background: useCustom ? 'rgba(200, 200, 200, 0.5)' : 'rgba(255, 255, 255, 0.9)',
+              cursor: useCustom ? 'not-allowed' : 'pointer'
             }}
           >
             <option value="">-- Hisse Seçiniz --</option>
@@ -112,6 +127,45 @@ const BuyPage = ({ onBuy, api, balance }) => {
               </optgroup>
             ))}
           </select>
+        </div>
+
+        <div style={{ marginBottom: '15px', textAlign: 'center', opacity: 0.7, fontSize: '14px' }}>
+          veya
+        </div>
+
+        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            placeholder="Hisse Ara (örn: GOOGL, TSLA)"
+            value={customSymbol}
+            onChange={(e) => setCustomSymbol(e.target.value.toUpperCase())}
+            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCustomSymbolSearch())}
+            disabled={symbol !== ''}
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              border: 'none',
+              flex: 1,
+              fontSize: '16px',
+              background: symbol !== '' ? 'rgba(200, 200, 200, 0.5)' : 'rgba(255, 255, 255, 0.9)'
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleCustomSymbolSearch}
+            disabled={!customSymbol.trim() || symbol !== ''}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              background: (!customSymbol.trim() || symbol !== '') ? '#6c757d' : '#007bff',
+              color: 'white',
+              cursor: (!customSymbol.trim() || symbol !== '') ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            🔍 Ara
+          </button>
         </div>
 
 

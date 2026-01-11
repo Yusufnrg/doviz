@@ -11,157 +11,103 @@ const fetchWithTimeout = async (url, options = {}) => {
   }
 };
 
-const fetchYahooData = async (symbol) => {
-  // Cache busting: Her 1 dakikada bir değişen timestamp.
-  // Bu sayede proxy'ler 1 dakika boyunca cache kullanabilir, Yahoo'ya yük azalır ve rate limit riski düşer.
-  const cacheBuster = Math.floor(Date.now() / 60000);
-  
-  const hosts = ['query1.finance.yahoo.com', 'query2.finance.yahoo.com'];
-  
-  for (const host of hosts) {
-    const targetUrl = `https://${host}/v8/finance/chart/${symbol}?interval=1d&range=5d&_t=${cacheBuster}`;
-    
-    const proxies = [
-      // 1. AllOrigins
-      async (url) => {
-        const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        const data = await res.json();
-        return JSON.parse(data.contents);
-      },
-      // 2. CorsProxy.io
-      async (url) => {
-        const res = await fetchWithTimeout(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        return await res.json();
-      },
-      // 3. CodeTabs
-      async (url) => {
-        const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        return await res.json();
-      },
-      // 4. ThingProxy
-      async (url) => {
-        const res = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${url}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        return await res.json();
-      }
-    ];
+const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 
-    for (const fetchViaProxy of proxies) {
-      try {
-        const json = await fetchViaProxy(targetUrl);
-        if (json.chart && json.chart.result && json.chart.result.length > 0) {
-           return json;
-        }
-      } catch (e) {
-        console.warn(`Proxy failed for ${host} with ${symbol}`, e);
-      }
-    }
+const requireApiKey = (apiKey) => {
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+    throw new Error('Finnhub API key gerekli');
+  }
+};
+
+const normalizeToFinnhubSymbol = (rawSymbol) => {
+  const input = String(rawSymbol ?? '').trim();
+  const upper = input.toUpperCase();
+
+  // Kullanıcı dostu kısaltmalar (FX sembolleri)
+  if (upper === 'DOLAR' || upper === 'USD') return { symbol: 'FX:USDTRY', currency: '₺' };
+  if (upper === 'EURO' || upper === 'EUR') return { symbol: 'FX:EURTRY', currency: '₺' };
+
+  // Altın (ons / USD)
+  if (upper === 'XAU/USD' || upper === 'GOLD' || upper === 'ALTIN') return { symbol: 'OANDA:XAU_USD', currency: '$' };
+  
+  // Altın alternatif
+  if (upper === 'GC=F') return { symbol: 'GC=F', currency: '$' };
+
+  // Kripto (USDT bazlı)
+  if (upper === 'BITCOIN' || upper === 'BTC') return { symbol: 'BINANCE:BTCUSDT', currency: '$' };
+  if (upper === 'ETHEREUM' || upper === 'ETH') return { symbol: 'BINANCE:ETHUSDT', currency: '$' };
+  if (upper === 'DOGE' || upper === 'DOGECOIN') return { symbol: 'BINANCE:DOGEUSDT', currency: '$' };
+  if (upper === 'SOL' || upper === 'SOLANA') return { symbol: 'BINANCE:SOLUSDT', currency: '$' };
+  if (upper === 'XRP' || upper === 'RIPPLE') return { symbol: 'BINANCE:XRPUSDT', currency: '$' };
+  if (upper === 'AVAX' || upper === 'AVALANCHE') return { symbol: 'BINANCE:AVAXUSDT', currency: '$' };
+  if (upper === 'ADA' || upper === 'CARDANO') return { symbol: 'BINANCE:ADAUSDT', currency: '$' };
+
+  // Martı Tag özel eşleşme (eski davranış korunuyor)
+  if (upper === 'MARTI' || upper === 'MARTI TAG') return { symbol: 'MRT', currency: '$' };
+
+  // BIST kaldırıldı
+  if (upper.includes('.IS')) {
+    throw new Error('BIST (.IS) bu sürümde desteklenmiyor');
   }
 
-  throw new Error('Veri çekilemedi (Tüm proxyler ve hostlar denendi)');
+  // Varsayılan: kullanıcı ne girdiyse Finnhub symbol olarak dene
+  return { symbol: upper, currency: '$' };
+};
+
+const finnhubGetJson = async (url) => {
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) {
+    throw new Error('Veri çekilemedi');
+  }
+  return await res.json();
+};
+
+const getFinnhubCandleEndpoint = (finnhubSymbol) => {
+  if (finnhubSymbol.startsWith('BINANCE:')) return 'crypto/candle';
+  if (finnhubSymbol.startsWith('OANDA:')) return 'forex/candle';
+  if (finnhubSymbol.startsWith('FX:')) return 'forex/candle';
+  return 'stock/candle';
+};
+
+export const fetchCandles = async ({ symbol, apiKey, resolution, from, to }) => {
+  requireApiKey(apiKey);
+  const { symbol: finnhubSymbol } = normalizeToFinnhubSymbol(symbol);
+  const endpoint = getFinnhubCandleEndpoint(finnhubSymbol);
+  const url = `${FINNHUB_BASE_URL}/${endpoint}?symbol=${encodeURIComponent(finnhubSymbol)}&resolution=${encodeURIComponent(resolution)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&token=${encodeURIComponent(apiKey)}`;
+  const data = await finnhubGetJson(url);
+  if (!data || data.s !== 'ok') {
+    throw new Error('Geçmiş veri alınamadı');
+  }
+  return data;
+};
+
+export const fetchQuote = async (symbol, apiKey) => {
+  requireApiKey(apiKey);
+  const { symbol: finnhubSymbol, currency } = normalizeToFinnhubSymbol(symbol);
+  const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(finnhubSymbol)}&token=${encodeURIComponent(apiKey)}`;
+  const data = await finnhubGetJson(url);
+
+  if (!data || (data.c === 0 && data.d === null)) {
+    throw new Error('Sembol bulunamadı.');
+  }
+
+  return {
+    ...data,
+    symbol: finnhubSymbol,
+    currency
+  };
 };
 
 export const fetchStockPrice = async (symbol, apiKey) => {
-  let searchSymbol = symbol.trim().toUpperCase();
-  let currentPrice = null;
-  let currency = '$';
+  requireApiKey(apiKey);
+  const { symbol: finnhubSymbol, currency } = normalizeToFinnhubSymbol(symbol);
 
-  // 1. Dolar ve Euro (Frankfurter)
-  if (['DOLAR', 'USD', 'EURO', 'EUR'].includes(searchSymbol)) {
-    const fromCurrency = (searchSymbol === 'DOLAR' || searchSymbol === 'USD') ? 'USD' : 'EUR';
-    const res = await fetchWithTimeout(`https://api.frankfurter.app/latest?from=${fromCurrency}&to=TRY`);
-    if (!res.ok) throw new Error('Kur verisi alınamadı');
-    const data = await res.json();
-    currentPrice = data.rates.TRY;
-    currency = '₺';
-    return { price: currentPrice, currency };
-  }
-  
-  // 2. Martı Tag
-  if (searchSymbol === 'MARTI' || searchSymbol === 'MARTI TAG') {
-    searchSymbol = 'MRT';
-  }
-  
-  // 3. BIST (Yahoo Finance Proxy)
-  if (searchSymbol.includes('.IS')) {
-    currency = '₺'; // Fallback durumunda para birimini korumak için
-    try {
-      const data = await fetchYahooData(searchSymbol);
-      // regularMarketPrice bazen null gelebilir, bu durumda son kapanış fiyatını alalım
-      const result = data.chart.result[0];
-      currentPrice = result.meta.regularMarketPrice;
-      
-      if (!currentPrice && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close) {
-        const closes = result.indicators.quote[0].close;
-        // Son geçerli fiyatı bul (null olmayan)
-        for (let i = closes.length - 1; i >= 0; i--) {
-          if (closes[i]) {
-            currentPrice = closes[i];
-            break;
-          }
-        }
-      }
-      
-      if (!currentPrice) throw new Error('Fiyat bulunamadı');
+  const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(finnhubSymbol)}&token=${encodeURIComponent(apiKey)}`;
+  const data = await finnhubGetJson(url);
 
-      return { price: currentPrice, currency };
-    } catch (err) {
-      console.error("Yahoo BIST failed, trying Finnhub fallback...", err);
-      // Hata fırlatma, Finnhub'a düşsün
-    }
-  }
-
-  // 4. Altın (Yahoo Finance Proxy + GoldPrice.org Fallback)
-  if (['XAU/USD', 'GOLD', 'ALTIN'].includes(searchSymbol)) {
-    // 1. Yöntem: Yahoo Finance
-    try {
-      const data = await fetchYahooData('GC=F');
-      currentPrice = data.chart.result[0].meta.regularMarketPrice;
-      currency = '$'; 
-      return { price: currentPrice, currency };
-    } catch (err) {
-      console.log("Yahoo Gold failed, trying GoldPrice.org...");
-    }
-
-    // 2. Yöntem: GoldPrice.org
-    try {
-      const res = await fetchWithTimeout('https://data-asg.goldprice.org/dbXRates/USD');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.items && data.items[0]) {
-          currentPrice = data.items[0].xauPrice;
-          currency = '$';
-          return { price: currentPrice, currency };
-        }
-      }
-    } catch (err) {
-      console.log("GoldPrice.org failed.");
-    }
-
-    throw new Error('Altın verisi alınamadı');
-  }
-  
-  // 5. Finnhub (ABD & Kripto)
-  // Kripto Eşleşmeleri
-  if (searchSymbol === 'BITCOIN' || searchSymbol === 'BTC') searchSymbol = 'BINANCE:BTCUSDT';
-  if (searchSymbol === 'ETHEREUM' || searchSymbol === 'ETH') searchSymbol = 'BINANCE:ETHUSDT';
-  if (searchSymbol === 'DOGE' || searchSymbol === 'DOGECOIN') searchSymbol = 'BINANCE:DOGEUSDT';
-  if (searchSymbol === 'SOL' || searchSymbol === 'SOLANA') searchSymbol = 'BINANCE:SOLUSDT';
-  if (searchSymbol === 'XRP' || searchSymbol === 'RIPPLE') searchSymbol = 'BINANCE:XRPUSDT';
-  if (searchSymbol === 'AVAX' || searchSymbol === 'AVALANCHE') searchSymbol = 'BINANCE:AVAXUSDT';
-  if (searchSymbol === 'ADA' || searchSymbol === 'CARDANO') searchSymbol = 'BINANCE:ADAUSDT';
-
-  const res = await fetchWithTimeout(`https://finnhub.io/api/v1/quote?symbol=${searchSymbol}&token=${apiKey}`);
-  if (!res.ok) throw new Error('Veri çekilemedi');
-  const data = await res.json();
-  
-  if (data.c === 0 && data.d === null) {
+  if (!data || (data.c === 0 && data.d === null)) {
     throw new Error('Sembol bulunamadı.');
   }
-  
-  currentPrice = data.c;
-  return { price: currentPrice, currency };
+
+  return { price: data.c, currency };
 };
