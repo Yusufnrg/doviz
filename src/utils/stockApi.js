@@ -87,10 +87,9 @@ export const fetchQuote = async (symbol, apiKey) => {
   // USD ve EUR için özel forex API kullan
   if (isForex) {
     try {
-      const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
-      const data = await res.json();
-      
       if (finnhubSymbol === 'USD_TRY_FOREX') {
+        const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await res.json();
         const tryRate = data.rates.TRY;
         return {
           c: tryRate,
@@ -99,36 +98,16 @@ export const fetchQuote = async (symbol, apiKey) => {
           h: tryRate,
           l: tryRate,
           o: tryRate,
-  const { symbol: finnhubSymbol, currency, isForex } = normalizeToFinnhubSymbol(symbol);
-  
-  // USD ve EUR için özel forex API kullan
-  if (isForex) {
-    try {
-      if (finnhubSymbol === 'USD_TRY_FOREX') {
-        const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
-        const data = await res.json();
-        return { price: data.rates.TRY, currency: '₺' };
+          pc: tryRate,
+          symbol: 'USD/TRY',
+          currency: '₺'
+        };
       }
       
       if (finnhubSymbol === 'EUR_TRY_FOREX') {
         const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/EUR');
         const data = await res.json();
-        return { price: data.rates.TRY, currency: '₺' };
-      }
-    } catch (err) {
-      throw new Error('Döviz kuru alınamadı');
-    }
-  }
-
-  // Diğer semboller için Finnhub
-  requireApiKey(apiKey);          currency: '₺'
-        };
-      }
-      
-      if (finnhubSymbol === 'EUR_TRY_FOREX') {
-        const eurRes = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/EUR');
-        const eurData = await eurRes.json();
-        const tryRate = eurData.rates.TRY;
+        const tryRate = data.rates.TRY;
         return {
           c: tryRate,
           d: 0,
@@ -163,9 +142,29 @@ export const fetchQuote = async (symbol, apiKey) => {
 };
 
 export const fetchStockPrice = async (symbol, apiKey) => {
-  requireApiKey(apiKey);
-  const { symbol: finnhubSymbol, currency } = normalizeToFinnhubSymbol(symbol);
+  const { symbol: finnhubSymbol, currency, isForex } = normalizeToFinnhubSymbol(symbol);
+  
+  // USD ve EUR için özel forex API kullan
+  if (isForex) {
+    try {
+      if (finnhubSymbol === 'USD_TRY_FOREX') {
+        const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await res.json();
+        return { price: data.rates.TRY, currency: '₺' };
+      }
+      
+      if (finnhubSymbol === 'EUR_TRY_FOREX') {
+        const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/EUR');
+        const data = await res.json();
+        return { price: data.rates.TRY, currency: '₺' };
+      }
+    } catch (err) {
+      throw new Error('Döviz kuru alınamadı');
+    }
+  }
 
+  // Diğer semboller için Finnhub
+  requireApiKey(apiKey);
   const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(finnhubSymbol)}&token=${encodeURIComponent(apiKey)}`;
   const data = await finnhubGetJson(url);
 
